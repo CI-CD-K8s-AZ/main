@@ -1,0 +1,20 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: drone-server
+  namespace: devops
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  rules:
+  - host: drone.metalcloud.cl
+    http:
+      paths:
+      - backend:
+          serviceName: droneserver
+          servicePort: 80
+        path: /
+  tls:
+    - hosts:
+      - drone.metalcloud.cl
+      secretName: drone-secret-tls
