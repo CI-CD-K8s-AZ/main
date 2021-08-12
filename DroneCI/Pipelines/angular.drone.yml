@@ -1,0 +1,97 @@
+kind: pipeline
+type: kubernetes
+name: default
+
+steps:
+- name: Build
+  image: node
+  commands:
+  - npm install -g @angular/cli@11.2.9
+  - npm install --force
+  - npm run build:${DRONE_SOURCE_BRANCH}  --configuration==${DRONE_SOURCE_BRANCH}
+  resources:
+    limits:
+      memory: 2GiB
+    requests:
+      memory: 2GiB
+  when:
+    event:
+    - push
+
+- name: Analysis
+  image: aosapps/drone-sonar-plugin
+  detach: true
+  settings:
+    sonar_host:
+      from_secret: sonar_host
+    sonar_token:
+      from_secret: sonar_token
+  failure: ignore
+  when:
+    event:
+    - push
+
+- name: Dockerize
+  image: plugins/docker
+  settings:
+    password:
+      from_secret: registry_password
+    registry: metalcloud.azurecr.io
+    repo: metalcloud.azurecr.io/${DRONE_REPO_NAME}
+    tags: ${DRONE_SOURCE_BRANCH}-v1.0-${DRONE_COMMIT_SHA:0:8}
+    username:
+      from_secret: registry_username
+  when:
+    event:
+    - push
+
+- name: Deploy
+  image: alpine/git
+  commands:
+    - "git clone --branch ${DRONE_SOURCE_BRANCH} https://github.com/CI-CD-K8s-AZ/gitops-parte2.git"
+    - "cd gitops-parte2"
+    - "echo 'Actualizando ${DRONE_REPO_NAME} en ${DRONE_SOURCE_BRANCH}...'"
+    - "sh ./update.sh '${DRONE_REPO_NAME}' '${DRONE_SOURCE_BRANCH}-v1.0-${DRONE_COMMIT_SHA:0:8}'"
+  when:
+    branch:
+    - develop
+    - release
+    event:
+    - push
+
+trigger:
+  branch:
+  - master
+  - release
+  - develop
+  event:
+  - push
+
+---
+kind: pipeline
+type: kubernetes
+name: deploy
+
+steps:
+- name: Deploy
+  image: alpine/git
+  commands:
+    - "git clone --branch ${DRONE_SOURCE_BRANCH} https://github.com/CI-CD-K8s-AZ/gitops-parte2.git"
+    - "cd gitops-parte2"
+    - "echo 'Actualizando ${DRONE_REPO_NAME} en ${DRONE_SOURCE_BRANCH}...'"
+    - "sh ./update.sh '${DRONE_REPO_NAME}' '${DRONE_SOURCE_BRANCH}-v1.0-${DRONE_COMMIT_SHA:0:8}'"
+  when:
+    branch:
+    - develop
+    - release
+    - master
+    event:
+    - promote
+
+trigger:
+  branch:
+  - master
+  - release
+  - develop
+  event:
+  - promote

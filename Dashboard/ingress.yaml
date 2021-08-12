@@ -4,9 +4,8 @@ metadata:
   name: kubernetes-dashboard
   namespace: kubernetes-dashboard
   annotations:
+    kubernetes.io/ingress.class: kong
     cert-manager.io/cluster-issuer: letsencrypt-prod
-    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
-    service.alpha.kubernetes.io/app-protocols: '{"https":"HTTPS"}'
 spec:
   tls:
     - hosts:

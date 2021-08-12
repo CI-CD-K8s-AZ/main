@@ -1,0 +1,89 @@
+def main(ctx):
+  deploy_commands="""
+    git clone --branch ${DRONE_SOURCE_BRANCH} https://github.com/CI-CD-K8s-AZ/gitops-parte2.git
+    cd gitops-parte2
+    echo 'Actualizando ${DRONE_REPO_NAME} en ${DRONE_SOURCE_BRANCH}...'
+    sh ./update.sh '${DRONE_REPO_NAME}' '${DRONE_SOURCE_BRANCH}-v1.0-${DRONE_COMMIT_SHA:0:8}'
+  """
+
+  return [{
+    "kind": "pipeline",
+    "name": "default",
+    "type": "kubernetes",
+    "steps": [
+      {
+        "name": "Build",
+        "image": "node",
+        "commands": [
+          "npm install -g @angular/cli@11.2.9",
+          "npm install --force",
+          "npm run build:${DRONE_SOURCE_BRANCH}  --configuration==${DRONE_SOURCE_BRANCH}"
+        ],
+        "resources": {
+          "requests": { "memory": "3000MiB" },
+          "limits": { "memory": "3000MiB" }
+        },
+        "when": {
+          "event": [ "push" ]
+        }
+      },
+      {
+        "name": "Analysis",
+        "image": "aosapps/drone-sonar-plugin",
+        "failure": "ignore",
+        "detach": True,
+        "settings": {
+          "sonar_host": { "from_secret": "sonar_host" },
+          "sonar_token": { "from_secret": "sonar_token" }
+        },
+        "when": {
+          "event": [ "push" ]
+        }
+      },
+      {
+        "name": "Dockerize",
+        "image": "plugins/docker",
+        "settings": {
+          "registry": "metalcloud.azurecr.io",
+          "repo": "metalcloud.azurecr.io/${DRONE_REPO_NAME}",
+          "username": { "from_secret": "registry_username" },
+          "password": { "from_secret": "registry_password" },
+          "tags": "${DRONE_SOURCE_BRANCH}-v1.0-${DRONE_COMMIT_SHA:0:8}"
+        },
+        "when": { "event": [ "push" ] }
+      },
+      {
+        "name": "Deploy",
+        "image": "alpine/git",
+        "commands": [ deploy_commands ],
+        "when": {
+          "event": [ "push" ],
+          "branch": [ "develop", "release" ]
+        }
+      }
+    ],
+    "trigger": {
+      "branch": [ "master", "release", "develop"],
+      "event": [ "push" ]
+    }
+  },
+  {
+    "kind": "pipeline",
+    "name": "deploy",
+    "type": "kubernetes",
+    "steps": [
+      {
+        "name": "Deploy",
+        "image": "alpine/git",
+        "commands": [ deploy_commands ],
+        "when": {
+          "event": [ "promote" ],
+          "branch": [ "develop", "release", "master" ]
+        }
+      }
+    ],
+    "trigger": {
+      "branch": [ "master", "release", "develop" ],
+      "event": [ "promote" ],
+    }
+  }]

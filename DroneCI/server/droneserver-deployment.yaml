@@ -63,5 +63,13 @@ spec:
             secretKeyRef:
               name: drone-server-secret
               key: DRONE_RPC_SECRET
-        #- name: DRONE_DEBUG
+        - name: DRONE_GIT_ALWAYS_AUTH
+          value: "true"
+        #- name: DRONE_LOGS_DEBUG
+        #  value: "true"
+        #- name: DRONE_RPC_DUMP_HTTP
+        #  value: "true"
+        #- name: DRONE_RPC_DUMP_HTTP_BODY
+        #  value: "true"
+        #- name: DRONE_LOGS_TRACE
         #  value: "true"

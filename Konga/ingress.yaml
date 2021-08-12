@@ -1,0 +1,21 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+ name: konga-ingress
+ namespace: kong
+ annotations:
+    kubernetes.io/ingress.class: kong
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  rules:
+  - host: konga.metalcloud.cl
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: konga
+          servicePort: 1338
+  tls:
+    - hosts:
+      - konga.metalcloud.cl
+      secretName: konga-secret-tls
