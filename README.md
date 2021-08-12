@@ -21,6 +21,15 @@ Pasos para instalar el entorno de CI + CD
 
 # Tema 1: DroneCI
 
+# Paso 0: Preparar DroneCI
+
+Para que Drone pueda utilizar las credencenciales de Git de GitHub es necesario agregar una variable de entorno. Para ellos, debemos ejecutar los siguientes comandos:
+
+```console
+    kubectl delete -f ./DroneCI/server/droneserver-deployment.yaml
+    kubectl apply -f ./DroneCI/server/droneserver-deployment.yaml
+```
+
 ## Paso 1: Mejorar pipelines
 
 > Revisa los pipelines de ./DroneCI/Pipelines/
